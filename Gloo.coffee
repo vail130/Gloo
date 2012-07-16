@@ -95,6 +95,7 @@ class GlooController
         else
             model = new @classes.model(@)
             @models.push model.load value
+            
     
     initViews: ->
         @views.push new @classes.view(@, value.id) for value in @models
@@ -104,20 +105,32 @@ class GlooController
         @controllers.push new value(@) for value in @classes.controllers
         @
     
-    resetView: ->
-        @view.delete()
-        @view = new @classes.view()
+    destroyViews: ->
+        view.delete() for view in @views
+        @views = []
         @
-
-    resetModel: ->
-        @model.delete()
-        @model = new @classes.model()
+    
+    destroyModels: ->
+        model.delete() for model in @models
+        @models = []
         @
-
-    resetCollection: ->
-        @collection.delete()
-        @collection = new @classes.collection()
+    
+    destroyController: ->
+        controller.delete() for controller in @controllers
+        @controllers = []
         @
+    
+    sort: (sortString) ->
+        # TODO
+        sorts = sortString.split /\s*[,;:\/\\]\s*/g
+        for s in sorts
+            if s.substr -1 is '-'
+                property = s.substr 0, s.length-1
+            else
+                property = s
+    
+    filter: () ->
+        # TODO
 
     bindDOMEvent: (elem, eventString, callback) ->
         throw 'MissingArgumentError' is arguments.length < 3
