@@ -5,7 +5,7 @@ Gloo.coffee
 Advanced MVC Framework in CoffeeScript
 
 Dependencies:
-    jQuery for HTTP requests and DOM selection
+    jQuery for HTTP requests, DOM selection, view event delegation
 
 Copyright 2012, Vail Gold
 Released under ...
@@ -95,14 +95,16 @@ class GlooController
         else
             model = new @classes.model(@)
             @models.push model.load value
-            
     
     initViews: ->
-        @views.push new @classes.view(@, value.id) for value in @models
+        if @models?
+            @views.push new @classes.view @, value.id for value in @models
+        else
+            @views.push new @classes.view @
         @
             
     initControllers: ->
-        @controllers.push new value(@) for value in @classes.controllers
+        @controllers.push new value @ for value in @classes.controllers
         @
     
     destroyViews: ->
@@ -348,25 +350,40 @@ class GlooView extends GlooCore
     constructor: (controller, modelID) ->
         throw 'MissingArgumentError' if not controller? or typeof controller isnt 'object'
         @controller = controller
-        @modelID = modelID
-        @render().initEvents()
+        @modelID = modelID if modelID?
+        @render().initEvents().initDelegates()
     
     ###############
     # Start Overload
     ###############
     
     className: ''
-    events:
+    events: [
         ###
-        An object with key-value pairs. Keys should be event strings,
-        composed of the name of the event and an optional period and
-        namespace. Values should be the instance method to run as a callback
-        of the event.
-        
-        Ex: 'event.namespace': @callback
-        
+        An array of objects with 3 properties: event, namespace, and callback.
+        namespace is optional
+        Ex:
+        {
+            event: 'click'
+            namespace: 'selection'
+            callback: -> true
+        }
         ###
-        null
+    ]
+    
+    delegates: [
+        ###
+        An array of objects with 4 properties: selector, event, namespace,
+        and callback. namespace is optional
+        Ex:
+        {
+            selector: '.items'
+            event: 'click'
+            namespace: 'selection'
+            callback: -> true
+        }
+        ###
+    ]
         
     ###############
     # End Overload
@@ -375,11 +392,25 @@ class GlooView extends GlooCore
     @modelID: null
     
     initEvents: ->
-        @controller.on eventString, callback for callback, eventString in @events
-        @
+        for obj in @events
+            eventString = obj.event + (if obj.namespace? then '.' + namespace else '')
+            @controller.on eventString, callback 
     
     removeEvents: ->
-        @controller.off eventString for callback, eventString in @events
+        for obj in @events
+            eventString = obj.event + (if obj.namespace? then '.' + namespace else '')
+            @controller.off eventString, callback 
+    
+    initDelegates: ->
+        for obj in @delegates
+            eventString = obj.event + (if obj.namespace? then '.' + namespace else '')
+            @controller.$el.on eventString, selector, callback
+        @
+    
+    removeDelegates: ->
+        for obj in @delegates
+            eventString = obj.event + (if obj.namespace? then '.' + namespace else '')
+            @controller.$el.off eventString, selector, callback
         @
     
     render: ->
